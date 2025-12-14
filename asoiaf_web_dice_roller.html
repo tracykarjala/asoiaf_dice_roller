@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Song of Ice and Fire RPG - Dice Roller</title>
+    <!--
+    A Song of Ice and Fire RPG Dice Roller
+    Created by: u/LegitimatePaxFarmer
+    Date: December 12, 2025
+    Developed with assistance from Claude.ai (Anthropic)
+
+    Features:
+    - Character-specific injury/wound tracking
+    - Category-based roll organization and history
+    - ASOIAF dice mechanics (bonus dice, keep highest)
+    - Multiple rolls for groups of NPCs
+    - Import/export for different campaigns
+    - Cross-platform web application
+    -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+        }
+        
+        .content {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .section h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 3px;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .input-group label {
+            font-weight: 500;
+            min-width: 180px;
+            color: #2c3e50;
+        }
+        
+        .input-group input[type="number"] {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input[type="text"] {
+            width: 120px;
+            padding: 8px 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-group label {
+            font-weight: 500;
+            min-width: 180px;
+            color: #2c3e50;
+        }
+        
+        .checkboxes {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #e74c3c;
+        }
+        
+        .checkbox-item label {
+            min-width: auto;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .roll-button {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            margin: 8px 0;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        
+        .results {
+            background: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .results:empty::before {
+            content: "Roll results will appear here...";
+            opacity: 0.6;
+            font-style: italic;
+        }
+        
+        .kept-die {
+            background: #2ecc71;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+        
+        .discarded-die {
+            background: #e74c3c;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+        
+        .total-result {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f39c12;
+            margin: 10px 0;
+        }
+        
+        .save-controls, .load-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .save-controls input, .load-controls select {
+            padding: 8px 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        .import-export-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #27ae60;
+        }
+        
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>A Song of Ice and Fire RPG Dice Roller</h1>
+        </div>
+        
+        <div class="content">
+            <div class="left-column">
+                <div class="section">
+                    <h3>Ability & Specialty</h3>
+                    <div class="input-group">
+                        <label for="ability">Ability Rank (1-10):</label>
+                        <input type="number" id="ability" min="1" max="10" value="3">
+                    </div>
+                    <div class="input-group">
+                        <label for="specialty">Specialty Bonus Dice (0-10):</label>
+                        <input type="number" id="specialty" min="0" max="10" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="numRolls">Number of Rolls:</label>
+                        <input type="number" id="numRolls" min="1" max="20" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="clearHistory">Clear history each roll:</label>
+                        <input type="checkbox" id="clearHistory" style="width: auto;">
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Roll Modifier</h3>
+                    <div class="input-group">
+                        <label for="modifier">Modifier (+/-):</label>
+                        <input type="text" id="modifier" value="0" placeholder="0">
+                        <button class="btn btn-secondary" onclick="clearModifier()">Clear</button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Injuries & Wounds</h3>
+                    <div class="checkbox-group">
+                        <label>Injuries (-1 each):</label>
+                        <div class="checkboxes">
+                            <div class="checkbox-item"><input type="checkbox" id="injury1"><label for="injury1">1</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury2"><label for="injury2">2</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury3"><label for="injury3">3</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury4"><label for="injury4">4</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury5"><label for="injury5">5</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury6"><label for="injury6">6</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury7"><label for="injury7">7</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury8"><label for="injury8">8</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury9"><label for="injury9">9</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="injury10"><label for="injury10">10</label></div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="clearInjuries()" style="margin-left: 10px; padding: 4px 8px; font-size: 0.8em;">Clear All</button>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <label>Wounds (-1 die each):</label>
+                        <div class="checkboxes">
+                            <div class="checkbox-item"><input type="checkbox" id="wound1"><label for="wound1">1</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound2"><label for="wound2">2</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound3"><label for="wound3">3</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound4"><label for="wound4">4</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound5"><label for="wound5">5</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound6"><label for="wound6">6</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound7"><label for="wound7">7</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound8"><label for="wound8">8</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound9"><label for="wound9">9</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="wound10"><label for="wound10">10</label></div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="clearWounds()" style="margin-left: 10px; padding: 4px 8px; font-size: 0.8em;">Clear All</button>
+                    </div>
+                </div>
+                
+                <button class="roll-button" onclick="rollDice()">🎲 Roll Dice 🎲</button>
+                
+                <div class="section">
+                    <h3>Saved Roll Combinations</h3>
+                    <div class="save-controls">
+                        <label for="categoryName">Category:</label>
+                        <input type="text" id="categoryName" placeholder="e.g. Bandits, Guards..." style="width: 120px;">
+                        <label for="saveName">Roll Name:</label>
+                        <input type="text" id="saveName" placeholder="Enter name..." style="width: 100px;">
+                        <button class="btn btn-success" onclick="saveRoll()">Save</button>
+                    </div>
+                    
+                    <div class="load-controls">
+                        <label for="categorySelect">Category:</label>
+                        <select id="categorySelect" style="width: 120px;" onchange="updateSavedRollsDropdown()">
+                            <option value="">-- All Categories --</option>
+                        </select>
+                        <label for="savedRolls">Roll:</label>
+                        <select id="savedRolls" style="width: 150px;">
+                            <option value="">-- Select a roll --</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="loadRoll()">Load</button>
+                        <button class="btn btn-danger" onclick="deleteRoll()">Delete</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-column">
+                <div class="section" style="height: calc(100vh - 200px); display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin-bottom: 0;">Roll Results</h3>
+                        <button class="btn btn-secondary" onclick="clearRollHistory()" style="padding: 4px 8px; font-size: 0.8em;">Clear History</button>
+                    </div>
+                    <div class="results" id="results" style="flex: 1; min-height: auto; max-height: none;"></div>
+                </div>
+                
+                <div class="section">
+                    <h3>Import/Export Saved Rolls</h3>
+                    <div class="import-export-controls">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <label for="exportFileName" style="font-weight: 500;">Export filename:</label>
+                            <input type="text" id="exportFileName" placeholder="campaign_name" style="padding: 6px 10px; border: 2px solid #bdc3c7; border-radius: 4px; font-size: 14px; width: 150px;">
+                            <button class="btn btn-primary" onclick="exportSavedRolls()">Export to File</button>
+                        </div>
+                        <div>
+                            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importSavedRolls(event)">
+                            <button class="btn btn-success" onclick="document.getElementById('importFile').click()">Import from File</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="messages" style="grid-column: 1 / -1;"></div>
+        </div>
+    </div>
+
+    <script>
+        function validateSpecialty() {
+            var ability = parseInt(document.getElementById('ability').value) || 1;
+            var specialtyInput = document.getElementById('specialty');
+            var specialty = parseInt(specialtyInput.value) || 0;
+            
+            if (specialty > ability) {
+                specialtyInput.value = ability;
+            }
+        }
+        
+        function clearModifier() {
+            document.getElementById('modifier').value = '0';
+        }
+        
+        function clearInjuries() {
+            for (var i = 1; i <= 10; i++) {
+                document.getElementById('injury' + i).checked = false;
+            }
+        }
+        
+        function clearWounds() {
+            for (var i = 1; i <= 10; i++) {
+                document.getElementById('wound' + i).checked = false;
+            }
+        }
+        
+        function getInjuryCount() {
+            var count = 0;
+            for (var i = 1; i <= 10; i++) {
+                if (document.getElementById('injury' + i).checked) {
+                    count++;
+                }
+            }
+            return count;
+        }
+        
+        function getWoundCount() {
+            var count = 0;
+            for (var i = 1; i <= 10; i++) {
+                if (document.getElementById('wound' + i).checked) {
+                    count++;
+                }
+            }
+            return count;
+        }
+        
+        function getInjuryState() {
+            var injuries = [];
+            for (var i = 1; i <= 10; i++) {
+                injuries.push(document.getElementById('injury' + i).checked);
+            }
+            return injuries;
+        }
+        
+        function getWoundState() {
+            var wounds = [];
+            for (var i = 1; i <= 10; i++) {
+                wounds.push(document.getElementById('wound' + i).checked);
+            }
+            return wounds;
+        }
+        
+        function setInjuryState(injuries) {
+            for (var i = 1; i <= 10; i++) {
+                document.getElementById('injury' + i).checked = injuries[i-1] || false;
+            }
+        }
+        
+        function setWoundState(wounds) {
+            for (var i = 1; i <= 10; i++) {
+                document.getElementById('wound' + i).checked = wounds[i-1] || false;
+            }
+        }
+        
+        function getCharacterStates() {
+            var saved = localStorage.getItem('asoiafCharacterStates');
+            return saved ? JSON.parse(saved) : {};
+        }
+        
+        function setCharacterStates(states) {
+            localStorage.setItem('asoiafCharacterStates', JSON.stringify(states));
+        }
+        
+        function saveCharacterState(category) {
+            if (!category) {
+                return;
+            }
+            
+            var characterStates = getCharacterStates();
+            characterStates[category] = {
+                injuries: getInjuryState(),
+                wounds: getWoundState(),
+                rollHistory: document.getElementById('results').innerHTML
+            };
+            setCharacterStates(characterStates);
+        }
+        
+        function loadCharacterState(category) {
+            if (!category) {
+                clearInjuries();
+                clearWounds();
+                document.getElementById('results').innerHTML = '';
+                return;
+            }
+            
+            var characterStates = getCharacterStates();
+            var characterState = characterStates[category];
+            
+            if (characterState) {
+                if (characterState.injuries) {
+                    setInjuryState(characterState.injuries);
+                } else {
+                    clearInjuries();
+                }
+                
+                if (characterState.wounds) {
+                    setWoundState(characterState.wounds);
+                } else {
+                    clearWounds();
+                }
+                
+                if (characterState.rollHistory) {
+                    document.getElementById('results').innerHTML = characterState.rollHistory;
+                } else {
+                    document.getElementById('results').innerHTML = '';
+                }
+            } else {
+                clearInjuries();
+                clearWounds();
+                document.getElementById('results').innerHTML = '';
+            }
+        }
+        
+        function switchToCategory(category, skipAutoSelect) {
+            var currentCategory = document.getElementById('categoryName').value.trim();
+            
+            // Save current state if switching away from a category
+            if (currentCategory && currentCategory !== category) {
+                saveCharacterState(currentCategory);
+            }
+            
+            // Update category field
+            document.getElementById('categoryName').value = category || '';
+            
+            // Load character state (injuries/wounds/history)
+            loadCharacterState(category);
+            
+            // Auto-select skill for this category (unless we're about to load a specific roll)
+            if (!skipAutoSelect) {
+                autoSelectSkillForCategory(category);
+            }
+            
+            // Update dropdowns
+            updateSavedRollsDropdown();
+        }
+        
+        function clearRollHistory() {
+            var currentCategory = document.getElementById('categoryName').value.trim();
+            
+            // Clear the current results display
+            document.getElementById('results').innerHTML = '';
+            
+            // If there's a current category, update its stored state to have empty history
+            if (currentCategory) {
+                var characterStates = getCharacterStates();
+                if (characterStates[currentCategory]) {
+                    characterStates[currentCategory].rollHistory = '';
+                    setCharacterStates(characterStates);
+                }
+                
+                showMessage('Roll history cleared for ' + currentCategory, 'success');
+            } else {
+                showMessage('Roll history cleared', 'success');
+            }
+        }
+        
+        function showMessage(message, type) {
+            type = type || 'error';
+            var messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '<div class="' + type + '">' + message + '</div>';
+            setTimeout(function() {
+                messagesDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        function rollDice() {
+            try {
+                var ability = parseInt(document.getElementById('ability').value);
+                var specialty = parseInt(document.getElementById('specialty').value) || 0;
+                var modifierText = document.getElementById('modifier').value.trim();
+                var modifier = modifierText === '' || modifierText === '0' ? 0 : parseInt(modifierText);
+                var injuries = getInjuryCount();
+                var wounds = getWoundCount();
+                var numRolls = parseInt(document.getElementById('numRolls').value) || 1;
+                var clearHistory = document.getElementById('clearHistory').checked;
+                
+                if (isNaN(ability) || ability < 1 || ability > 10) {
+                    throw new Error('Ability rank must be between 1 and 10');
+                }
+                if (specialty < 0 || specialty > 10) {
+                    throw new Error('Specialty bonus must be between 0 and 10');
+                }
+                if (specialty > ability) {
+                    throw new Error('Specialty bonus cannot exceed ability rank');
+                }
+                if (isNaN(modifier)) {
+                    throw new Error('Modifier must be a valid number');
+                }
+                if (numRolls < 1 || numRolls > 20) {
+                    throw new Error('Number of rolls must be between 1 and 20');
+                }
+                
+                // Save current character state before potentially clearing history
+                var currentCategory = document.getElementById('categoryName').value.trim();
+                if (currentCategory && !clearHistory) {
+                    saveCharacterState(currentCategory);
+                }
+                
+                if (clearHistory) {
+                    document.getElementById('results').innerHTML = '';
+                }
+                
+                var totalDice = ability + specialty - wounds;
+                if (totalDice < 1) {
+                    totalDice = 1;
+                }
+                var diceToKeep = Math.max(1, ability - wounds);
+                
+                // Get current roll information for display
+                var categoryName = currentCategory;
+                var rollName = getRollNameForCurrentSettings();
+                
+                var allRollResults = [];
+                for (var rollNum = 1; rollNum <= numRolls; rollNum++) {
+                    var allRolls = [];
+                    for (var i = 0; i < totalDice; i++) {
+                        allRolls.push(Math.floor(Math.random() * 6) + 1);
+                    }
+                    
+                    allRolls.sort(function(a, b) { return b - a; });
+                    
+                    var keptDice = allRolls.slice(0, diceToKeep);
+                    var discardedDice = allRolls.slice(diceToKeep);
+                    
+                    var diceTotal = 0;
+                    for (var i = 0; i < keptDice.length; i++) {
+                        diceTotal += keptDice[i];
+                    }
+                    
+                    var injuryPenalty = injuries;
+                    var finalTotal = diceTotal - injuryPenalty + modifier;
+                    
+                    var sixesRolled = 0;
+                    for (var i = 0; i < keptDice.length; i++) {
+                        if (keptDice[i] === 6) sixesRolled++;
+                    }
+                    
+                    allRollResults.push({
+                        rollNum: rollNum,
+                        allRolls: allRolls,
+                        keptDice: keptDice,
+                        discardedDice: discardedDice,
+                        diceTotal: diceTotal,
+                        injuryPenalty: injuryPenalty,
+                        finalTotal: finalTotal,
+                        sixesRolled: sixesRolled
+                    });
+                }
+                
+                displayResults(ability, specialty, modifier, injuries, wounds, allRollResults, numRolls, categoryName, rollName);
+                
+                // Save character state after rolling
+                if (currentCategory) {
+                    saveCharacterState(currentCategory);
+                }
+                
+            } catch (error) {
+                showMessage(error.message);
+            }
+        }
+        
+        function getRollNameForCurrentSettings() {
+            var currentCategory = document.getElementById('categoryName').value.trim();
+            var ability = parseInt(document.getElementById('ability').value);
+            var specialty = parseInt(document.getElementById('specialty').value) || 0;
+            var modifier = parseInt(document.getElementById('modifier').value) || 0;
+            var numRolls = parseInt(document.getElementById('numRolls').value) || 1;
+            
+            if (!currentCategory) {
+                return null;
+            }
+            
+            var savedRolls = getSavedRolls();
+            
+            // Look for a saved roll that matches current settings
+            for (var uniqueKey in savedRolls) {
+                var rollData = savedRolls[uniqueKey];
+                if (rollData.category === currentCategory &&
+                    rollData.ability === ability &&
+                    rollData.specialty === specialty &&
+                    rollData.modifier === modifier &&
+                    rollData.numRolls === numRolls) {
+                    return rollData.displayName;
+                }
+            }
+            
+            return null;
+        }
+        
+        function displayResults(ability, specialty, modifier, injuries, wounds, allRollResults, numRolls, categoryName, rollName) {
+            var resultsDiv = document.getElementById('results');
+            var html = '';
+            
+            if (numRolls === 1) {
+                var result = allRollResults[0];
+                
+                // Display character and roll name if available
+                if (categoryName || rollName) {
+                    html += '<div style="font-weight: bold; color: #3498db; margin-bottom: 5px;">';
+                    if (categoryName && rollName) {
+                        html += categoryName + ' - ' + rollName;
+                    } else if (categoryName) {
+                        html += categoryName;
+                    } else if (rollName) {
+                        html += rollName;
+                    }
+                    html += '</div>';
+                }
+                
+                html += '<div>Roll: ' + ability + ' Ability';
+                if (specialty > 0) {
+                    html += ' + ' + specialty + ' Specialty';
+                }
+                if (wounds > 0) {
+                    html += ' - ' + wounds + ' Wound' + (wounds !== 1 ? 's' : '');
+                }
+                html += ' = ' + result.allRolls.length + ' dice, keep ' + result.keptDice.length + '</div><br>';
+                
+                html += '<div>Dice rolled: ';
+                for (var i = 0; i < result.allRolls.length; i++) {
+                    var die = result.allRolls[i];
+                    if (i < result.keptDice.length) {
+                        html += '<span class="kept-die">' + die + '</span>';
+                    } else {
+                        html += '<span class="discarded-die">' + die + '</span>';
+                    }
+                }
+                html += '</div>';
+                html += '<div style="font-size: 0.9em; opacity: 0.8;">(Green = kept, Red = discarded)</div><br>';
+                
+                html += '<div>Kept dice: ' + result.keptDice.join(' + ') + ' = ' + result.diceTotal + '</div>';
+                
+                if (result.injuryPenalty > 0) {
+                    html += '<div>Injuries: -' + result.injuryPenalty + '</div>';
+                }
+                
+                if (modifier !== 0) {
+                    html += '<div>Modifier: ' + (modifier >= 0 ? '+' : '') + modifier + '</div>';
+                }
+                
+                html += '<div class="total-result">Final Total: ' + result.finalTotal + '</div>';
+                
+                if (result.sixesRolled > 0) {
+                    html += '<div style="color: #f39c12;">Sixes rolled: ' + result.sixesRolled + ' (for critical success evaluation)</div>';
+                }
+                
+            } else {
+                // Display character and roll name for multiple rolls
+                if (categoryName || rollName) {
+                    html += '<div style="font-weight: bold; color: #3498db; margin-bottom: 5px;">';
+                    if (categoryName && rollName) {
+                        html += categoryName + ' - ' + rollName;
+                    } else if (categoryName) {
+                        html += categoryName;
+                    } else if (rollName) {
+                        html += rollName;
+                    }
+                    html += '</div>';
+                }
+                
+                html += '<div><strong>' + numRolls + ' Rolls:</strong> ' + ability + ' Ability';
+                if (specialty > 0) {
+                    html += ' + ' + specialty + ' Specialty';
+                }
+                if (wounds > 0) {
+                    html += ' - ' + wounds + ' Wound' + (wounds !== 1 ? 's' : '');
+                }
+                html += '</div><br>';
+                
+                html += '<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9em;">';
+                html += '<tr style="background: rgba(255,255,255,0.1); border-bottom: 1px solid #555;">';
+                html += '<th style="padding: 4px; text-align: left;">Roll</th>';
+                html += '<th style="padding: 4px; text-align: left;">All Dice</th>';
+                html += '<th style="padding: 4px; text-align: left;">Total</th>';
+                html += '<th style="padding: 4px; text-align: left;">6s</th>';
+                html += '</tr>';
+                
+                for (var i = 0; i < allRollResults.length; i++) {
+                    var result = allRollResults[i];
+                    html += '<tr style="border-bottom: 1px solid #444;">';
+                    html += '<td style="padding: 4px;">#' + result.rollNum + '</td>';
+                    html += '<td style="padding: 4px;">';
+                    
+                    for (var j = 0; j < result.allRolls.length; j++) {
+                        var die = result.allRolls[j];
+                        if (j < result.keptDice.length) {
+                            html += '<span class="kept-die" style="margin-right: 1px; padding: 1px 3px; font-size: 0.8em;">' + die + '</span>';
+                        } else {
+                            html += '<span class="discarded-die" style="margin-right: 1px; padding: 1px 3px; font-size: 0.8em;">' + die + '</span>';
+                        }
+                    }
+                    
+                    html += '</td>';
+                    html += '<td style="padding: 4px; font-weight: bold; color: #f39c12;">' + result.finalTotal + '</td>';
+                    html += '<td style="padding: 4px;">' + result.sixesRolled + '</td>';
+                    html += '</tr>';
+                }
+                
+                html += '</table>';
+                
+                var totals = [];
+                for (var i = 0; i < allRollResults.length; i++) {
+                    totals.push(allRollResults[i].finalTotal);
+                }
+                var minTotal = Math.min.apply(null, totals);
+                var maxTotal = Math.max.apply(null, totals);
+                
+                html += '<div style="margin-top: 8px; font-size: 0.85em; opacity: 0.9;">';
+                html += 'Min: ' + minTotal + ', Max: ' + maxTotal;
+                html += '</div>';
+            }
+            
+            html += '<div style="margin: 20px 0; border-top: 1px solid #555; padding-top: 10px;"></div>';
+            resultsDiv.innerHTML = html + resultsDiv.innerHTML;
+        }
+        
+        function getSavedRolls() {
+            var saved = localStorage.getItem('asoiafSavedRolls');
+            return saved ? JSON.parse(saved) : {};
+        }
+        
+        function setSavedRolls(rolls) {
+            localStorage.setItem('asoiafSavedRolls', JSON.stringify(rolls));
+        }
+        
+        function updateCategoryDropdown() {
+            var categorySelect = document.getElementById('categorySelect');
+            var savedRolls = getSavedRolls();
+            
+            var categories = [];
+            for (var key in savedRolls) {
+                if (savedRolls[key] && savedRolls[key].category) {
+                    if (categories.indexOf(savedRolls[key].category) === -1) {
+                        categories.push(savedRolls[key].category);
+                    }
+                }
+            }
+            
+            categorySelect.innerHTML = '<option value="">-- All Categories --</option>';
+            categories.sort();
+            for (var i = 0; i < categories.length; i++) {
+                var option = document.createElement('option');
+                option.value = categories[i];
+                option.textContent = categories[i];
+                categorySelect.appendChild(option);
+            }
+        }
+        
+        function updateSavedRollsDropdown() {
+            var rollSelect = document.getElementById('savedRolls');
+            var categorySelect = document.getElementById('categorySelect');
+            var selectedCategory = categorySelect.value;
+            var savedRolls = getSavedRolls();
+            
+            rollSelect.innerHTML = '<option value="">-- Select a roll --</option>';
+            
+            for (var uniqueKey in savedRolls) {
+                var rollData = savedRolls[uniqueKey];
+                
+                if (selectedCategory && rollData.category !== selectedCategory) {
+                    continue;
+                }
+                
+                var option = document.createElement('option');
+                option.value = uniqueKey;
+                
+                var displayName = rollData.displayName || (rollData.category ? uniqueKey.split('.')[1] : uniqueKey);
+                
+                if (!selectedCategory && rollData.category) {
+                    option.textContent = '[' + rollData.category + '] ' + displayName;
+                } else {
+                    option.textContent = displayName;
+                }
+                
+                rollSelect.appendChild(option);
+            }
+        }
+        
+        function saveRoll() {
+            var name = document.getElementById('saveName').value.trim();
+            var category = document.getElementById('categoryName').value.trim();
+            
+            if (!name) {
+                showMessage('Please enter a roll name');
+                return;
+            }
+            
+            try {
+                var ability = parseInt(document.getElementById('ability').value);
+                var specialty = parseInt(document.getElementById('specialty').value) || 0;
+                var modifier = parseInt(document.getElementById('modifier').value) || 0;
+                var numRolls = parseInt(document.getElementById('numRolls').value) || 1;
+                
+                var rollData = {
+                    ability: ability,
+                    specialty: specialty,
+                    modifier: modifier,
+                    numRolls: numRolls,
+                    category: category || null,
+                    displayName: name
+                };
+                
+                // Handle character state saving
+                if (category) {
+                    var characterStates = getCharacterStates();
+                    var isExistingCategory = characterStates.hasOwnProperty(category);
+                    
+                    if (isExistingCategory) {
+                        // Update existing character state (keep current roll history)
+                        saveCharacterState(category);
+                    } else {
+                        // New category - create empty character state and clear current results
+                        characterStates[category] = {
+                            injuries: getInjuryState(),
+                            wounds: getWoundState(),
+                            rollHistory: ''  // Empty history for new character
+                        };
+                        setCharacterStates(characterStates);
+                        
+                        // Clear the current results display since this is a new character
+                        document.getElementById('results').innerHTML = '';
+                    }
+                }
+                
+                var uniqueKey = category ? (category + '.' + name) : name;
+                
+                var savedRolls = getSavedRolls();
+                savedRolls[uniqueKey] = rollData;
+                setSavedRolls(savedRolls);
+                
+                updateCategoryDropdown();
+                updateSavedRollsDropdown();
+                
+                document.getElementById('saveName').value = '';
+                
+                var categoryText = category ? (' in category "' + category + '"') : '';
+                showMessage('Roll "' + name + '" saved' + categoryText + '!', 'success');
+                
+            } catch (error) {
+                showMessage('Please enter valid numbers before saving');
+            }
+        }
+        
+        function loadRoll() {
+            var uniqueKey = document.getElementById('savedRolls').value;
+            
+            if (!uniqueKey) {
+                showMessage('Please select a roll to load');
+                return;
+            }
+            
+            var savedRolls = getSavedRolls();
+            var rollData = savedRolls[uniqueKey];
+            
+            if (rollData) {
+                var currentCategory = document.getElementById('categoryName').value;
+                
+                // Save current state if switching categories
+                if (currentCategory && currentCategory !== rollData.category) {
+                    saveCharacterState(currentCategory);
+                }
+                
+                // Update category field and load character state
+                document.getElementById('categoryName').value = rollData.category || '';
+                loadCharacterState(rollData.category);
+                
+                // Load the specific roll data
+                document.getElementById('ability').value = rollData.ability;
+                document.getElementById('specialty').value = rollData.specialty;
+                document.getElementById('modifier').value = rollData.modifier;
+                document.getElementById('numRolls').value = rollData.numRolls || 1;
+                
+                var displayName = rollData.displayName || (rollData.category ? uniqueKey.split('.')[1] : uniqueKey);
+                showMessage('Loaded "' + displayName + '"', 'success');
+            }
+        }
+        
+        function autoSelectSkillForCategory(category) {
+            console.log('autoSelectSkillForCategory called with category:', category);
+            
+            if (!category) {
+                console.log('No category provided, returning');
+                return;
+            }
+            
+            var savedRolls = getSavedRolls();
+            var categorySkills = [];
+            
+            // Find all skills for this category
+            for (var uniqueKey in savedRolls) {
+                var rollData = savedRolls[uniqueKey];
+                if (rollData.category === category) {
+                    categorySkills.push({
+                        key: uniqueKey,
+                        data: rollData,
+                        name: rollData.displayName.toLowerCase()
+                    });
+                }
+            }
+            
+            console.log('Found skills for category ' + category + ':', categorySkills);
+            
+            if (categorySkills.length === 0) {
+                console.log('No skills found for category');
+                return;
+            }
+            
+            var selectedSkill;
+            
+            if (categorySkills.length === 1) {
+                console.log('Only one skill, auto-selecting:', categorySkills[0].name);
+                selectedSkill = categorySkills[0];
+            } else {
+                console.log('Multiple skills, looking for fighting...');
+                var fightingSkill = null;
+                for (var i = 0; i < categorySkills.length; i++) {
+                    if (categorySkills[i].name === 'fighting') {
+                        fightingSkill = categorySkills[i];
+                        break;
+                    }
+                }
+                
+                if (fightingSkill) {
+                    console.log('Found fighting skill, selecting it');
+                    selectedSkill = fightingSkill;
+                } else {
+                    categorySkills.sort(function(a, b) {
+                        return a.name.localeCompare(b.name);
+                    });
+                    console.log('No fighting skill, selecting first alphabetically:', categorySkills[0].name);
+                    selectedSkill = categorySkills[0];
+                }
+            }
+            
+            // Load the selected skill
+            if (selectedSkill) {
+                console.log('Loading selected skill:', selectedSkill.name, 'with stats:', selectedSkill.data);
+                document.getElementById('ability').value = selectedSkill.data.ability;
+                document.getElementById('specialty').value = selectedSkill.data.specialty;
+                document.getElementById('modifier').value = selectedSkill.data.modifier;
+                document.getElementById('numRolls').value = selectedSkill.data.numRolls || 1;
+                
+                // Update the saved rolls dropdown to show the selected skill
+                document.getElementById('savedRolls').value = selectedSkill.key;
+                console.log('Auto-selection completed for:', selectedSkill.name);
+            }
+        }
+        
+        function deleteRoll() {
+            var uniqueKey = document.getElementById('savedRolls').value;
+            
+            if (!uniqueKey) {
+                showMessage('Please select a roll to delete');
+                return;
+            }
+            
+            var savedRolls = getSavedRolls();
+            var rollData = savedRolls[uniqueKey];
+            var displayName = rollData ? (rollData.displayName || (rollData.category ? uniqueKey.split('.')[1] : uniqueKey)) : uniqueKey;
+            
+            if (confirm('Delete saved roll "' + displayName + '"?')) {
+                delete savedRolls[uniqueKey];
+                setSavedRolls(savedRolls);
+                
+                updateCategoryDropdown();
+                updateSavedRollsDropdown();
+                document.getElementById('savedRolls').value = '';
+                
+                showMessage('Deleted "' + displayName + '"', 'success');
+            }
+        }
+        
+        function exportSavedRolls() {
+            var savedRolls = getSavedRolls();
+            var characterStates = getCharacterStates();
+            
+            // Save current character state before exporting
+            var currentCategory = document.getElementById('categoryName').value.trim();
+            if (currentCategory) {
+                saveCharacterState(currentCategory);
+                characterStates = getCharacterStates(); // Refresh after saving
+            }
+            
+            if (Object.keys(savedRolls).length === 0) {
+                showMessage('No saved rolls to export');
+                return;
+            }
+            
+            // Get filename from input or use default
+            var filename = document.getElementById('exportFileName').value.trim();
+            if (!filename) {
+                filename = 'asoiaf_saved_rolls';
+            }
+            
+            // Ensure filename ends with .json
+            if (!filename.toLowerCase().endsWith('.json')) {
+                filename += '.json';
+            }
+            
+            var exportData = {
+                rolls: savedRolls,
+                characterStates: characterStates
+            };
+            
+            var dataStr = JSON.stringify(exportData, null, 2);
+            var dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = filename;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showMessage('Saved rolls and character states exported as "' + filename + '"!', 'success');
+        }
+        
+        function importSavedRolls(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var importedData = JSON.parse(e.target.result);
+                    
+                    var importedRolls, importedCharacterStates;
+                    
+                    if (importedData.rolls && importedData.characterStates) {
+                        importedRolls = importedData.rolls;
+                        importedCharacterStates = importedData.characterStates;
+                    } else {
+                        importedRolls = importedData;
+                        importedCharacterStates = {};
+                    }
+                    
+                    if (typeof importedRolls !== 'object' || importedRolls === null) {
+                        throw new Error('Invalid file format');
+                    }
+                    
+                    for (var name in importedRolls) {
+                        var rollData = importedRolls[name];
+                        
+                        if (!rollData || typeof rollData !== 'object') {
+                            throw new Error('Invalid data for roll "' + name + '"');
+                        }
+                        if (typeof rollData.ability !== 'number' || rollData.ability < 1 || rollData.ability > 10) {
+                            throw new Error('Invalid ability value for roll "' + name + '"');
+                        }
+                        if (typeof rollData.specialty !== 'number' || rollData.specialty < 0 || rollData.specialty > 10) {
+                            throw new Error('Invalid specialty value for roll "' + name + '"');
+                        }
+                        if (typeof rollData.modifier !== 'number') {
+                            throw new Error('Invalid modifier value for roll "' + name + '"');
+                        }
+                        
+                        if (!rollData.hasOwnProperty('category')) {
+                            rollData.category = null;
+                        }
+                        if (!rollData.hasOwnProperty('displayName')) {
+                            rollData.displayName = rollData.category ? name.split('.')[1] : name;
+                        }
+                        
+                        delete rollData.injuries;
+                        delete rollData.wounds;
+                    }
+                    
+                    var currentRolls = getSavedRolls();
+                    var currentCharacterStates = getCharacterStates();
+                    var hasExistingData = Object.keys(currentRolls).length > 0 || Object.keys(currentCharacterStates).length > 0;
+                    
+                    var shouldMerge = false;
+                    if (hasExistingData) {
+                        shouldMerge = confirm('You have existing saved data. Click OK to merge with imported data, or Cancel to replace all existing data.');
+                    }
+                    
+                    var finalRolls, finalCharacterStates;
+                    if (shouldMerge) {
+                        finalRolls = Object.assign({}, currentRolls, importedRolls);
+                        finalCharacterStates = Object.assign({}, currentCharacterStates, importedCharacterStates);
+                    } else {
+                        finalRolls = importedRolls;
+                        finalCharacterStates = importedCharacterStates;
+                    }
+                    
+                    setSavedRolls(finalRolls);
+                    setCharacterStates(finalCharacterStates);
+                    updateCategoryDropdown();
+                    updateSavedRollsDropdown();
+                    
+                    var importCount = Object.keys(importedRolls).length;
+                    var action = shouldMerge ? 'merged' : 'imported';
+                    showMessage('Successfully ' + action + ' ' + importCount + ' saved roll' + (importCount !== 1 ? 's' : '') + ' and character states!', 'success');
+                    
+                } catch (error) {
+                    showMessage('Error importing file: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('ability').addEventListener('input', validateSpecialty);
+            document.getElementById('specialty').addEventListener('input', validateSpecialty);
+            updateCategoryDropdown();
+            updateSavedRollsDropdown();
+        });
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.target.matches('input[type="text"]')) {
+                rollDice();
+            }
+        });
+    </script>
+</body>
+</html>
